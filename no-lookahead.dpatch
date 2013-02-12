@@ -1,0 +1,79 @@
+1 patch for repository http://code.ouroborus.net/bmp/bmp-head:
+
+Mon Feb 11 14:23:48 CET 2013  Alp Mestanogullari <alpmestan@gmail.com>
+  * Use <|> instead of lookAhead, for compatibility with binary >= 0.6
+
+
+New patches:
+
+[Use <|> instead of lookAhead, for compatibility with binary >= 0.6
+Alp Mestanogullari <alpmestan@gmail.com>**20130211132348
+ Ignore-this: bfae23630fdf76cc3633f00b95486410
+] hunk ./Codec/BMP/BitmapInfo.hs 6
+ 	( BitmapInfo	(..)
+ 	, getBitmapInfoV3)
+ where
++
+ import Codec.BMP.BitmapInfoV3
+ import Codec.BMP.BitmapInfoV4
+ import Codec.BMP.BitmapInfoV5
+hunk ./Codec/BMP/BitmapInfo.hs 10
++import Control.Applicative 
+ import Data.Binary
+ import Data.Binary.Get
+ 
+hunk ./Codec/BMP/BitmapInfo.hs 25
+ 
+ 
+ instance Binary BitmapInfo where
+- get
+-  = do	size	<- lookAhead getWord32le 
+-	case size of
+-	 40 -> do
+-		info 	<- get
+-		return	$ InfoV3 info
+-		
+-	 108 -> do
+-		info	<- get
+-		return	$ InfoV4 info
+-		
+-	 124 -> do
+-		info	<- get
+-		return	$ InfoV5 info
+-		
+-	 _   -> error "Codec.BMP.BitmapInfo.get: unhandled header size"
++ get = 
++  (do 40 <- getWord32le
++      info <- get
++      return $ InfoV3 info)
++  <|>
++  (do 108 <- getWord32le
++      info <- get
++      return $ InfoV4 info)
++  <|>
++  (do 120 <- getWord32le
++      info <- get
++      return $ InfoV5 info)
++  <|> 
++  (error "Codec.BMP.BitmapInfo.get: unhandled header size")
+ 	
+  put xx
+   = case xx of
+hunk ./bmp.cabal 26
+   build-Depends: 
+         base                 == 4.*,
+         bytestring           == 0.10.*,
+-        binary               == 0.5.*
++        binary               >= 0.6
+ 
+   ghc-options:
+         -Wall -fno-warn-missing-signatures
+
+Context:
+
+[TAG Release 1.2.3.4
+benl@ouroborus.net**20121217024802
+ Ignore-this: 928a3a04e55769e70f36d83d3cf6ac56
+] 
+Patch bundle hash:
+fcb6267d09dad0ba8490ee9afac60b25b25c5a71
